@@ -56,7 +56,6 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.SmithingRecipe;
 import net.minecraft.world.item.crafting.SmithingTransformRecipe;
-import net.minecraft.world.item.crafting.TransmuteResult;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.Blocks;
@@ -229,9 +228,9 @@ public class JeiDebugPlugin implements IModPlugin {
 				ResourceKey.create(Registries.RECIPE, testRecipeWithoutTemplateId),
 				new SmithingTransformRecipe(
 					Optional.empty(),
-					Ingredient.of(Items.APPLE),
+					Optional.of(Ingredient.of(Items.APPLE)),
 					Optional.of(Ingredient.of(Items.BAKED_POTATO)),
-					new TransmuteResult(Items.ACACIA_BOAT)
+					new ItemStack(Items.ACACIA_BOAT)
 				)
 			);
 			registration.addRecipes(RecipeTypes.SMITHING, List.of(

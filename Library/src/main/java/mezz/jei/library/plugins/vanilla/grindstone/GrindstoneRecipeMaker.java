@@ -13,7 +13,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.EnchantmentTags;
-import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.GrindstoneMenu;
@@ -144,7 +143,7 @@ public final class GrindstoneRecipeMaker {
 			if (player == null) {
 				return null;
 			}
-			Inventory fakeInventory = new Inventory(player, new EntityEquipment());
+			Inventory fakeInventory = new Inventory(player);
 			GRINDSTONE_MENU = new GrindstoneMenu(0, fakeInventory);
 			return GRINDSTONE_MENU;
 		}

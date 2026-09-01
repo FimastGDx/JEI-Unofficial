@@ -67,6 +67,7 @@ import mezz.jei.library.plugins.vanilla.ingredients.fluid.FluidIngredientHelper;
 import mezz.jei.library.plugins.vanilla.ingredients.fluid.FluidStackListFactory;
 import mezz.jei.library.plugins.vanilla.ingredients.subtypes.EnchantedBookSubtypeInterpreter;
 import mezz.jei.library.plugins.vanilla.ingredients.subtypes.LightSubtypeInterpreter;
+import mezz.jei.library.plugins.vanilla.ingredients.subtypes.PaintingSubtypeInterpreter;
 import mezz.jei.library.plugins.vanilla.ingredients.subtypes.PotionSubtypeInterpreter;
 import mezz.jei.library.plugins.vanilla.stonecutting.StoneCuttingRecipeCategory;
 import mezz.jei.library.render.FluidTankRenderer;
@@ -161,7 +162,7 @@ public class VanillaPlugin implements IModPlugin {
 		registration.registerSubtypeInterpreter(Items.LINGERING_POTION, PotionSubtypeInterpreter.INSTANCE);
 		registration.registerSubtypeInterpreter(Items.ENCHANTED_BOOK, EnchantedBookSubtypeInterpreter.INSTANCE);
 		registration.registerSubtypeInterpreter(Items.LIGHT, LightSubtypeInterpreter.INSTANCE);
-		registration.registerFromDataComponentTypes(Items.PAINTING, DataComponents.PAINTING_VARIANT);
+		registration.registerSubtypeInterpreter(Items.PAINTING, PaintingSubtypeInterpreter.INSTANCE);
 		registration.registerFromDataComponentTypes(Items.GOAT_HORN, DataComponents.INSTRUMENT);
 		registration.registerFromDataComponentTypes(Items.FIREWORK_ROCKET, DataComponents.FIREWORKS);
 		registration.registerFromDataComponentTypes(Items.FIREWORK_STAR, DataComponents.FIREWORK_EXPLOSION);

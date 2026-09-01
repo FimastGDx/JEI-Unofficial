@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IPlatformRecipeHelper {
-	Ingredient getBase(SmithingRecipe recipe);
+	Optional<Ingredient> getBase(SmithingRecipe recipe);
 	Optional<Ingredient> getAddition(SmithingRecipe recipe);
 	Optional<Ingredient> getTemplate(SmithingRecipe recipe);
 

@@ -19,7 +19,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.context.ContextMap;
-import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
@@ -339,7 +338,7 @@ public final class AnvilRecipeMaker {
 			if (player == null) {
 				return null;
 			}
-			Inventory fakeInventory = new Inventory(player, new EntityEquipment());
+			Inventory fakeInventory = new Inventory(player);
 			ANVIL_MENU = new AnvilMenu(0, fakeInventory);
 			return ANVIL_MENU;
 		}

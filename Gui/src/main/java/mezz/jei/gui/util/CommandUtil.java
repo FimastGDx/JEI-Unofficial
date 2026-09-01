@@ -81,7 +81,7 @@ public final class CommandUtil {
 
 	private static void sendCreativeInventoryActions(LocalPlayer sender, ItemStack stack, int amount) {
 		int i = 0;
-		NonNullList<ItemStack> nonEquipmentItems = sender.getInventory().getNonEquipmentItems();
+		NonNullList<ItemStack> nonEquipmentItems = sender.getInventory().items;
 		while (i < nonEquipmentItems.size() && amount > 0) {
 			ItemStack currentStack = nonEquipmentItems.get(i);
 			if (currentStack.isEmpty()) {

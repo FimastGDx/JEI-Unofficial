@@ -19,7 +19,6 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 
-import java.net.URI;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
@@ -127,8 +126,9 @@ public class ConfigButton extends GuiIconToggleButton {
 					.withColor(ChatFormatting.DARK_BLUE)
 					.withUnderlined(true)
 					.withClickEvent(
-						new ClickEvent.OpenUrl(
-							URI.create("https://www.curseforge.com/minecraft/mc-mods/configured")
+						new ClickEvent(
+							ClickEvent.Action.OPEN_URL,
+							"https://www.curseforge.com/minecraft/mc-mods/configured"
 						)
 					)
 			)
@@ -140,7 +140,8 @@ public class ConfigButton extends GuiIconToggleButton {
 							.withColor(ChatFormatting.WHITE)
 							.withUnderlined(true)
 							.withClickEvent(
-								new ClickEvent.OpenFile(
+								new ClickEvent(
+									ClickEvent.Action.OPEN_FILE,
 									configHelper.createJeiConfigDir().toAbsolutePath().toString()
 								)
 							)
