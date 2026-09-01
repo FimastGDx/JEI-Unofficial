@@ -4,16 +4,33 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 plugins {
     id("idea")
     id("java")
-    id("net.neoforged.moddev")
+    id("fabric-loom")
     id("maven-publish")
+}
+
+repositories {
+    fun exclusiveMaven(url: String, filter: Action<InclusiveRepositoryContentDescriptor>) =
+        exclusiveContent {
+            forRepository { maven(url) }
+            filter(filter)
+        }
+    exclusiveMaven("https://maven.parchmentmc.org") {
+        includeGroupByRegex("org\\.parchmentmc.*")
+    }
+    maven("https://repo.spongepowered.org/repository/maven-public/") {
+        content {
+            includeGroupByRegex("org\\.spongepowered.*")
+        }
+    }
 }
 
 // gradle.properties
 val jUnitVersion: String by extra
 val minecraftVersion: String by extra
-val neoformVersionAndTimestamp: String by extra
 val modId: String by extra
 val modJavaVersion: String by extra
+val parchmentMinecraftVersion: String by extra
+val parchmentVersionFabric: String by extra
 
 val baseArchivesName = "${modId}-${minecraftVersion}-gui"
 base {
@@ -30,10 +47,6 @@ dependencyProjects.forEach {
     project.evaluationDependsOn(it.path)
 }
 
-neoForge {
-    neoFormVersion = neoformVersionAndTimestamp
-}
-
 sourceSets {
     named("test") {
         //The test module has no resources
@@ -42,14 +55,29 @@ sourceSets {
 }
 
 dependencies {
+    minecraft(
+        group = "com.mojang",
+        name = "minecraft",
+        version = minecraftVersion,
+    )
+    @Suppress("UnstableApiUsage")
+    mappings(loom.layered {
+        officialMojangMappings()
+        parchment("org.parchmentmc.data:parchment-${parchmentMinecraftVersion}:${parchmentVersionFabric}@zip")
+    })
     compileOnly(
         group = "org.spongepowered",
         name = "mixin",
         version = "0.8.5"
     )
-    dependencyProjects.forEach {
-        implementation(it)
-    }
+    implementation(
+        group = "com.google.code.findbugs",
+        name = "jsr305",
+        version = "3.0.1"
+    )
+    implementation(project(":Core"))
+    implementation(project(":Common", configuration = "namedElements"))
+    implementation(project(":CommonApi", configuration = "namedElements"))
     testImplementation(
         group = "org.junit.jupiter",
         name = "junit-jupiter",

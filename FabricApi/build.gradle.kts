@@ -111,7 +111,7 @@ dependencies {
         name = "jsr305",
         version = "3.0.1"
     )
-    implementation(commonApi)
+    implementation(project(":CommonApi", configuration = "namedElements"))
 }
 
 sourceSets {
