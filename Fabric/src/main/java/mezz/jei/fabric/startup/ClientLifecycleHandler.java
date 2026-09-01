@@ -11,10 +11,14 @@ import mezz.jei.library.startup.JeiStarter;
 import mezz.jei.library.startup.StartData;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Collection;
 import java.util.List;
 
 public class ClientLifecycleHandler {
@@ -78,13 +82,33 @@ public class ClientLifecycleHandler {
 			return;
 		}
 
+		Internal.setClientSyncedRecipes(getIntegratedServerRecipes(minecraft));
+
 		this.jeiStarter.start();
 		running = true;
+	}
+
+	/**
+	 * Fabric has no recipe sync from the server on this branch, and since Minecraft 1.21.2
+	 * the client's own {@link net.minecraft.world.item.crafting.RecipeManager} is empty,
+	 * so nothing ever populates {@link Internal#setClientSyncedRecipes}.
+	 * In single-player the integrated server is right here, so read its recipes directly.
+	 * In multiplayer this stays empty and JEI reports the missing recipes in chat.
+	 */
+	private static RecipeMap getIntegratedServerRecipes(Minecraft minecraft) {
+		IntegratedServer server = minecraft.getSingleplayerServer();
+		if (server == null) {
+			return RecipeMap.EMPTY;
+		}
+		Collection<RecipeHolder<?>> recipes = server.getRecipeManager().getRecipes();
+		LOGGER.info("Read {} recipes from the integrated server.", recipes.size());
+		return RecipeMap.create(recipes);
 	}
 
 	private void stopJei() {
 		LOGGER.info("Stopping JEI");
 		this.jeiStarter.stop();
+		Internal.setClientSyncedRecipes(RecipeMap.EMPTY);
 		running = false;
 	}
 }
