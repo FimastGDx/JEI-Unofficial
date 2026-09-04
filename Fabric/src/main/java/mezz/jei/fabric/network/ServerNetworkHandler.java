@@ -26,6 +26,7 @@ public final class ServerNetworkHandler {
 		PayloadTypeRegistry.playS2C().register(PacketSetHotbarItemStack.TYPE, PacketSetHotbarItemStack.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(PacketRequestCheatPermission.TYPE, PacketRequestCheatPermission.STREAM_CODEC);
 		PayloadTypeRegistry.playS2C().register(PacketCheatPermission.TYPE, PacketCheatPermission.STREAM_CODEC);
+		PayloadTypeRegistry.playS2C().register(PacketRecipeSync.TYPE, PacketRecipeSync.STREAM_CODEC);
 
 		PayloadTypeRegistry.playC2S().register(PacketDeletePlayerItem.TYPE, PacketDeletePlayerItem.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(PacketGiveItemStack.TYPE, PacketGiveItemStack.STREAM_CODEC);
@@ -33,12 +34,14 @@ public final class ServerNetworkHandler {
 		PayloadTypeRegistry.playC2S().register(PacketSetHotbarItemStack.TYPE, PacketSetHotbarItemStack.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(PacketRequestCheatPermission.TYPE, PacketRequestCheatPermission.STREAM_CODEC);
 		PayloadTypeRegistry.playC2S().register(PacketCheatPermission.TYPE, PacketCheatPermission.STREAM_CODEC);
+		PayloadTypeRegistry.playC2S().register(PacketRequestRecipes.TYPE, PacketRequestRecipes.STREAM_CODEC);
 
 		ServerPlayNetworking.registerGlobalReceiver(PacketDeletePlayerItem.TYPE, wrapServerHandler(connection, serverConfig, PacketDeletePlayerItem::process));
 		ServerPlayNetworking.registerGlobalReceiver(PacketGiveItemStack.TYPE, wrapServerHandler(connection, serverConfig, PacketGiveItemStack::process));
 		ServerPlayNetworking.registerGlobalReceiver(PacketRecipeTransfer.TYPE, wrapServerHandler(connection, serverConfig, PacketRecipeTransfer::process));
 		ServerPlayNetworking.registerGlobalReceiver(PacketSetHotbarItemStack.TYPE, wrapServerHandler(connection, serverConfig, PacketSetHotbarItemStack::process));
 		ServerPlayNetworking.registerGlobalReceiver(PacketRequestCheatPermission.TYPE, wrapServerHandler(connection, serverConfig, PacketRequestCheatPermission::process));
+		ServerPlayNetworking.registerGlobalReceiver(PacketRequestRecipes.TYPE, wrapServerHandler(connection, serverConfig, PacketRequestRecipes::process));
 	}
 
 	private static <T extends PlayToServerPacket<T>> ServerPlayNetworking.PlayPayloadHandler<T> wrapServerHandler(

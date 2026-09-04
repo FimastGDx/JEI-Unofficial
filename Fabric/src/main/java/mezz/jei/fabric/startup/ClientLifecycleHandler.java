@@ -5,11 +5,14 @@ import mezz.jei.common.Internal;
 import mezz.jei.common.network.IConnectionToServer;
 import mezz.jei.fabric.events.JeiLifecycleEvents;
 import mezz.jei.fabric.network.ClientNetworkHandler;
+import mezz.jei.fabric.network.ClientRecipeSyncHandler;
 import mezz.jei.fabric.network.ConnectionToServer;
+import mezz.jei.fabric.network.PacketRequestRecipes;
 import mezz.jei.gui.config.InternalKeyMappings;
 import mezz.jei.library.startup.JeiStarter;
 import mezz.jei.library.startup.StartData;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -25,36 +28,83 @@ public class ClientLifecycleHandler {
 	private static final Logger LOGGER = LogManager.getLogger();
 
 	private final JeiStarter jeiStarter;
+	private final IConnectionToServer serverConnection;
+	/**
+	 * The recipes the server's JEI last sent us. Only used in multiplayer.
+	 * Kept across {@link #stopJei()} so that a resource reload does not lose them.
+	 */
+	private RecipeMap syncedRecipes = RecipeMap.EMPTY;
+	private boolean gameStarted;
 	private boolean running;
 
 	public ClientLifecycleHandler() {
-		IConnectionToServer serverConnection = new ConnectionToServer();
-		Internal.setServerConnection(serverConnection);
+		this.serverConnection = new ConnectionToServer();
+		Internal.setServerConnection(this.serverConnection);
 
 		InternalKeyMappings keyMappings = new InternalKeyMappings(KeyBindingHelper::registerKeyBinding);
 		Internal.setKeyMappings(keyMappings);
 
-		ClientNetworkHandler.registerClientPacketHandler(serverConnection);
+		ClientNetworkHandler.registerClientPacketHandler(this.serverConnection);
 
 		List<IModPlugin> plugins = FabricPluginFinder.getModPlugins();
 		StartData startData = new StartData(
 			plugins,
-			serverConnection
+			this.serverConnection
 		);
 
 		this.jeiStarter = new JeiStarter(startData);
 	}
 
 	public void registerEvents() {
-		JeiLifecycleEvents.GAME_START.register(() ->
-			JeiLifecycleEvents.AFTER_RECIPE_SYNC.register(() -> {
-				if (running) {
-					stopJei();
-				}
-				startJei();
-			})
-		);
-		JeiLifecycleEvents.GAME_STOP.register(this::stopJei);
+		JeiLifecycleEvents.GAME_START.register(() -> this.gameStarted = true);
+		JeiLifecycleEvents.AFTER_RECIPE_SYNC.register(this::onRecipeSync);
+		JeiLifecycleEvents.SERVER_RECIPES_RECEIVED.register(this::onServerRecipesReceived);
+		JeiLifecycleEvents.GAME_STOP.register(() -> {
+			this.gameStarted = false;
+			this.syncedRecipes = RecipeMap.EMPTY;
+			stopJei();
+		});
+	}
+
+	/**
+	 * Vanilla has finished its own recipe sync, which since Minecraft 1.21.2 carries no
+	 * recipes at all. Get the real recipes from wherever they actually live.
+	 */
+	private void onRecipeSync() {
+		if (!this.gameStarted) {
+			// recipes can arrive before the player has finished logging in
+			return;
+		}
+		if (Minecraft.getInstance().getSingleplayerServer() != null) {
+			// the integrated server is in this process, so read its recipes directly
+			restartJei();
+			return;
+		}
+		if (ClientPlayNetworking.canSend(PacketRequestRecipes.TYPE)) {
+			// ask JEI on the server for the recipes and start once they arrive, so that
+			// JEI starts a single time with a complete recipe list
+			ClientRecipeSyncHandler.reset();
+			this.serverConnection.sendPacketToServer(PacketRequestRecipes.INSTANCE);
+			return;
+		}
+		// no JEI on the server, or one too old to send recipes. Start without them;
+		// JEI reports the missing recipes in chat itself.
+		restartJei();
+	}
+
+	private void onServerRecipesReceived(RecipeMap recipes) {
+		if (!this.gameStarted) {
+			return;
+		}
+		this.syncedRecipes = recipes;
+		restartJei();
+	}
+
+	private void restartJei() {
+		if (running) {
+			stopJei();
+		}
+		startJei();
 	}
 
 	public ResourceManagerReloadListener getReloadListener() {
@@ -82,23 +132,24 @@ public class ClientLifecycleHandler {
 			return;
 		}
 
-		Internal.setClientSyncedRecipes(getIntegratedServerRecipes(minecraft));
+		Internal.setClientSyncedRecipes(getRecipes(minecraft));
 
 		this.jeiStarter.start();
 		running = true;
 	}
 
 	/**
-	 * Fabric has no recipe sync from the server on this branch, and since Minecraft 1.21.2
-	 * the client's own {@link net.minecraft.world.item.crafting.RecipeManager} is empty,
-	 * so nothing ever populates {@link Internal#setClientSyncedRecipes}.
+	 * Since Minecraft 1.21.2 the client's own {@link net.minecraft.world.item.crafting.RecipeManager}
+	 * is empty, and Fabric has no recipe sync of its own, so nothing vanilla populates
+	 * {@link Internal#setClientSyncedRecipes}.
 	 * In single-player the integrated server is right here, so read its recipes directly.
-	 * In multiplayer this stays empty and JEI reports the missing recipes in chat.
+	 * In multiplayer they come from JEI on the server, see
+	 * {@code mezz.jei.fabric.network.PacketRecipeSync}.
 	 */
-	private static RecipeMap getIntegratedServerRecipes(Minecraft minecraft) {
+	private RecipeMap getRecipes(Minecraft minecraft) {
 		IntegratedServer server = minecraft.getSingleplayerServer();
 		if (server == null) {
-			return RecipeMap.EMPTY;
+			return this.syncedRecipes;
 		}
 		Collection<RecipeHolder<?>> recipes = server.getRecipeManager().getRecipes();
 		LOGGER.info("Read {} recipes from the integrated server.", recipes.size());

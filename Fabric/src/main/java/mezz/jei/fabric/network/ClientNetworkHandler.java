@@ -13,6 +13,7 @@ public final class ClientNetworkHandler {
 
 	public static void registerClientPacketHandler(IConnectionToServer connection) {
 		ClientPlayNetworking.registerGlobalReceiver(PacketCheatPermission.TYPE, wrapClientHandler(connection, PacketCheatPermission::process));
+		ClientPlayNetworking.registerGlobalReceiver(PacketRecipeSync.TYPE, wrapClientHandler(connection, PacketRecipeSync::process));
 	}
 
 	private static <T extends PlayToClientPacket<T>> ClientPlayNetworking.PlayPayloadHandler<T> wrapClientHandler(IConnectionToServer connection, BiConsumer<T, ClientPacketContext> consumer) {
