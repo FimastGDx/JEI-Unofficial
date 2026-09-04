@@ -6,11 +6,11 @@ This branch back-ports the upstream `1.21.5` branch (commit [`0772287a`](https:/
 
 * Official JEI lives at <https://github.com/mezz/JustEnoughItems>. Please do not report problems with this back-port there.
 * **Fabric only.** `:NeoForge:build` is knowingly broken on this branch — see commit `db1828af`.
-* **Recipes work in single-player only.** See below.
+* **Recipes need this jar on the server too** in multiplayer. See below.
 * The mod id is still `jei`, so this jar cannot be installed alongside official JEI.
 * Upstream shipped JEI 20.0.0 for Minecraft 1.21.4, but **that release contains no Fabric module** — it is NeoForge-only.
 
-### Recipes: single-player works, multiplayer does not
+### Recipes: single-player and multiplayer
 
 Upstream's Fabric module has never had recipe sync from the server. It entered history as
 commit `b120e37a`, titled *"WIP Fabric support but missing recipe sync from the server"*.
@@ -18,21 +18,36 @@ Since Minecraft 1.21.2 recipes live on the server and the client's own `RecipeMa
 empty, so `VanillaPlugin.registerRecipes` bails out and JEI reports
 *"JEI is missing recipes…"* in chat with no recipes listed at all.
 
-Commit `88aeb581` works around this **in single-player** by reading recipes straight out of
-the integrated server, which runs in the same process:
-`Minecraft.getSingleplayerServer().getRecipeManager().getRecipes()`.
+Upstream's own fix (`597a0f69d`, "Use fabric recipe sync") relies on
+`ClientRecipeSynchronizedEvent` from `fabric-recipe-api-v1`, which does not exist in Fabric
+API 0.119.4+1.21.4, so it cannot be back-ported as-is. This branch solves it in two steps
+instead:
 
-In multiplayer the recipe list is still empty. Upstream's real fix (`597a0f69d`, "Use
-fabric recipe sync") relies on `ClientRecipeSynchronizedEvent` from `fabric-recipe-api-v1`,
-which does not exist in Fabric API 0.119.4+1.21.4, so it cannot be back-ported as-is.
+* **Single-player** (`88aeb581`): the integrated server runs in the same process, so JEI
+  reads its recipes straight out of it —
+  `Minecraft.getSingleplayerServer().getRecipeManager().getRecipes()`. Nothing goes over the
+  network.
+* **Multiplayer** (`9df86416`): JEI carries its own sync over two plugin channels. The
+  client sends `jei:request_recipes` once vanilla's (recipe-less)
+  `ClientboundUpdateRecipesPacket` arrives, and the server answers with `jei:recipe_sync`
+  batches. `ClientboundCustomPayloadPacket` rejects payloads over 1 MiB, so each recipe is
+  measured with `RecipeHolder.STREAM_CODEC` and batches are cut at 800 kB; JEI starts once
+  the batch flagged `last` lands.
+
+So in multiplayer **this jar has to be installed on the server as well as the client**.
+Without it — or with a server-side JEI too old to know the `jei:request_recipes` channel —
+the client sees that through `ClientPlayNetworking.canSend`, then starts with an empty
+recipe list and the usual chat warning rather than waiting for an answer that will never
+come.
 
 ### What has actually been tested
 
 Confirmed working in single-player on Minecraft 1.21.4 with Fabric Loader 0.19.5 and Fabric
 API 0.119.4+1.21.4: 1409 recipes read, 1781 ingredients in the item list, JEI ready in
-about 8 seconds. Beyond that only the build, `validateAccessWidener`, the packaged jar
-contents and the unit tests have been verified. Multiplayer is known not to show recipes;
-anything past a plain vanilla single-player world is untested.
+about 8 seconds. The multiplayer sync compiles, remaps and packages cleanly, but it has
+**not** been run against a real dedicated server. Beyond that only the build,
+`validateAccessWidener`, the packaged jar contents and the unit tests have been verified;
+anything past a plain vanilla world is untested.
 
 Original code is © mezz and MIT licensed — see [LICENSE.txt](LICENSE.txt). The back-port changes are offered under the same license.
 
@@ -48,8 +63,8 @@ the NeoForm decompile step needs about 4 GB of RAM. That change is isolated in c
 `db1828af` and can be reverted if you build on a machine with enough memory.
 
 > Неофициальный бэкпорт JEI на Minecraft 1.21.4 (Fabric). К mezz отношения не имеет.
-> Проверен в одиночной игре; **рецепты работают только в одиночной игре**, в мультиплеере
-> их не будет. modid остался `jei` — вместе с официальным JEI не встанет.
+> Рецепты работают и в одиночной игре, и в мультиплеере, но в мультиплеере мод должен
+> стоять **и на сервере тоже**. modid остался `jei` — вместе с официальным JEI не встанет.
 
 ---
 
